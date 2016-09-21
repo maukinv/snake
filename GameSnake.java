@@ -1,6 +1,6 @@
 /**
 	* Classic game snake
-	
+	* hihi
 */
 
 import java.awt.*;
@@ -29,9 +29,9 @@ public class GameSnake {
 	final int START_DIRECTION = RIGHT;
 	final Color DEFAULT_COLOR = Color.black;
 	final Color FOOD_COLOR = Color.green;
-	final Color POISON_COLOR = Color.red;
+	//final Color POISON_COLOR = Color.red;
 	Snake snake;
-	//Food food;
+	Food food;
 	//Poison poison;
 	JFrame frame;
 	Canvas canvasPanel;
@@ -56,13 +56,25 @@ public class GameSnake {
 		frame.getContentPane().add(BorderLayout.CENTER, canvasPanel);
 		frame.addKeyListener(new KeyAdapter(){
 			public void keyPressed(KeyEvent e){
-				 snake.setDirection(e.getKeyCode());
+				snake.setDirection(e.getKeyCode());
 			}
 		});
 		
 		frame.setVisible(true);
 		
 		snake = new Snake(START_SNAKE_X, START_SNAKE_Y, START_SNAKE_SIZE, START_DIRECTION);
+		food = new Food();
+
+		while (!gameOver) {
+			snake.move();
+			if (food.isEaten()) {
+				food.next ();
+			}
+			canvasPanel.repaint();
+			try {
+					Thread.sleep(SHOW_DELAY);
+			} catch (InterruptedException e) { e.printStackTrace();}
+		}
 	}
 	
 	class Snake {
@@ -77,7 +89,50 @@ public class GameSnake {
 			}
 			this.direction = direction;
 		}
+
+		boolean isInsideSnake (int x, int y) {
+			for (Point point : snake) {
+				if ((point.getX() == x) && (point.getY() == y)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		boolean isFood(Point food) {
+            return ((snake.get(0).getX() == food.getX()) && (snake.get(0).getY() == food.getY()));
+		}
+ 		
+		void move() {
+			int x = snake.get(0).getX();
+			int y = snake.get(0).getY();
+			if (direction == LEFT) { x-- ;}
+			if (direction == RIGHT) { x++ ;}
+			if (direction == UP) { y-- ;}
+			if (direction == DOWN) { y++ ;}
+			if (x > FIELD_WIDTH - 1) { x = 0 ;}
+			if (x < 0) { x = FIELD_WIDTH - 1; }
+			if (y > FIELD_HEIGHT - 1) { y = 0 ;}
+			if (y < 0) { y = FIELD_HEIGHT - 1; }
+			gameOver = isInsideSnake(x, y);
+			snake.add(0, new Point(x, y));
+			if (isFood(food)) {
+				food.eat();
+				frame.setTitle(TITLE_OF_PROGRAM + " : " + snake.size());
+			} else {
+
+				snake.remove(snake.size() - 1);
+			}
+		}
 		
+		void setDirection(int direction) {
+            if ((direction >= LEFT) && (direction <= DOWN)) {
+                if (Math.abs(this.direction - direction) != 2) {
+                    this.direction = direction;
+                }
+            }
+        }
+
 		void paint(Graphics g) {
 			for (Point point : snake) {
 				point.paint(g);
@@ -85,6 +140,31 @@ public class GameSnake {
 		}
 	}
 	
+	class Food extends Point {
+
+		public Food() {
+			super(-1, -1);
+			this.color = FOOD_COLOR;
+		}
+
+		void eat() {
+			this.setXY(-1, -1);
+		}
+
+		boolean isEaten () {
+			return this.getX() == -1;
+		}
+
+		void next() {
+			int x, y;
+			do {
+				x = random.nextInt(FIELD_WIDTH);
+				y = random.nextInt(FIELD_HEIGHT);
+			} while (snake.isInsideSnake(x, y));
+			this.setXY(x, y);
+		}
+	}
+
 	class Point{
 		int x, y;
 		Color color = DEFAULT_COLOR;
@@ -99,6 +179,9 @@ public class GameSnake {
 			
 		}
 		
+		int getX () { return x;}
+		int getY () { return y;}
+
 		void setXY(int x, int y) {
 			this.x = x;
 			this.y = y;
@@ -111,6 +194,13 @@ public class GameSnake {
 		public void paint(Graphics g) {
 			super.paint(g);
 			snake.paint(g);
+			food.paint(g);
+			if (gameOver) {
+                g.setColor(Color.red);
+                g.setFont(new Font("Arial", Font.BOLD, 40));
+                FontMetrics fm = g.getFontMetrics();
+                g.drawString(GAME_OVER_MSG, (FIELD_WIDTH * POINT_RADIUS + FIELD_DX - fm.stringWidth(GAME_OVER_MSG))/2, (FIELD_HEIGHT * POINT_RADIUS + FIELD_DY)/2);
+            }
 		}
 	}
 }
